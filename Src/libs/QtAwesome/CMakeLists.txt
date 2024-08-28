@@ -11,7 +11,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
   if(GIT_FOUND)
     execute_process(
       COMMAND ${GIT_EXECUTABLE} describe --tags --long --match "font-awesome-*" --always
-      WORKING_DIRECTORY "."
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       OUTPUT_VARIABLE GITREV
       ERROR_QUIET
       OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -49,16 +49,16 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(QtAwesome_HEADERS
-        QtAwesome/QtAwesome.h
-        QtAwesome/QtAwesomeAnim.h
-        QtAwesome/QtAwesomeEnumGenerated.h
-        QtAwesome/QtAwesomeStringGenerated.h
+	QtAwesome/QtAwesome.h
+	QtAwesome/QtAwesomeAnim.h
+	QtAwesome/QtAwesomeEnumGenerated.h
+	QtAwesome/QtAwesomeStringGenerated.h
 )
 
 add_library(QtAwesome
-        QtAwesome/QtAwesome.cpp
-        QtAwesome/QtAwesomeAnim.cpp
-        QtAwesome/QtAwesomePro.qrc
+	QtAwesome/QtAwesome.cpp
+	QtAwesome/QtAwesomeAnim.cpp
+	QtAwesome/QtAwesomePro.qrc
 	${QtAwesome_HEADERS}
 )
 
@@ -85,7 +85,7 @@ install(TARGETS QtAwesome EXPORT QtAwesomeConfig
 	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/QtAwesome
 )
 
-install (FILES "../../../LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME} RENAME LICENSE)
+install (FILES "${PROJECT_SOURCE_DIR}/LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME} RENAME LICENSE)
 
 install(EXPORT QtAwesomeConfig
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/QtAwesome/
