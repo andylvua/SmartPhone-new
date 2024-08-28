@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="phone" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="true" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="SmartPhone-new" TARGET_NAME="phone" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="SmartPhone-new" RUN_TARGET_NAME="phone">
+    <envs>
+      <env name="QTWEBENGINE_DISABLE_SANDBOX" value="1" />
+      <env name="QT_FORCE_STDERR_LOGGING" value="1" />
+    </envs>
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
