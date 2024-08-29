@@ -7,8 +7,6 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 file(GLOB_RECURSE SOURCES Src/*.cpp Src/*.h)
-add_executable(phone main.cpp ${SOURCES})
-target_include_directories(phone PRIVATE Src)
 
 find_package(Qt5 COMPONENTS
         Core
@@ -16,6 +14,12 @@ find_package(Qt5 COMPONENTS
         SerialPort
         WebEngineWidgets
         REQUIRED)
+
+QT_ADD_RESOURCES(RC_SRC "resources.qrc")
+
+add_executable(phone main.cpp ${SOURCES} ${RC_SRC})
+target_include_directories(phone PRIVATE Src)
+
 target_link_libraries(phone
         Qt5::Core
         Qt5::Widgets

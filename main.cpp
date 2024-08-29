@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QResource>
 
 #include "backend/serial_port.h"
 #include "backend/modem/modem.h"
@@ -11,12 +12,13 @@
 
 fa::QtAwesome* FA::awesome = nullptr;
 
-
 //#define DEBUG
 
-int main(int argc, char *argv[]) {
-//    qInstallMessageHandler(logOutputHandler);
+int main(int argc, char* argv[]) {
+    //    qInstallMessageHandler(logOutputHandler);
     QApplication app(argc, argv);
+
+    CacheManager::setCacheDir(QCoreApplication::applicationDirPath() + "/../cache");
 
     QFile file("../Src/style/stylesheet.qss");
     file.open(QFile::ReadOnly);
@@ -27,39 +29,40 @@ int main(int argc, char *argv[]) {
     QLocale locale = QLocale(QLocale::English, QLocale::UnitedStates);
     QLocale::setDefault(locale);
 
-    auto mainLogger = spdlog::basic_logger_mt("main",
-                                              LOGS_FILEPATH,
-                                              true);
+    auto mainLogger =
+            spdlog::basic_logger_mt("main",
+                                    QCoreApplication::applicationDirPath().toStdString() + "/../logs/main.log",
+                                    true);
 
     // spdlog::flush_on(spdlog::level::debug);
     // spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%n] [function %!] [line %#] %v");
 
-    #ifdef __APPLE__
+#ifdef __APPLE__
         const char* portName = "/dev/tty.usbserial-1410";
-    #elif __linux__
-        const char* portName = "/dev/ttyUSB0";
-    #endif
+#elif __linux__
+    const char* portName = "/dev/ttyUSB0";
+#endif
 
-    SerialPort *serial = new SerialPort(portName,
-                      500,
-                      115200,
-                      QSerialPort::Data8,
-                      QSerialPort::NoParity,
-                      QSerialPort::OneStop,
-                      QSerialPort::NoFlowControl);
+    SerialPort* serial = new SerialPort(portName,
+                                        500,
+                                        115200,
+                                        QSerialPort::Data8,
+                                        QSerialPort::NoParity,
+                                        QSerialPort::OneStop,
+                                        QSerialPort::NoFlowControl);
 
-    #ifndef DEBUG
+#ifndef DEBUG
     if (!serial->openSerialPort()) {
         qDebug() << "Serial port error: " << serial->errorString();
         SPDLOG_LOGGER_ERROR(mainLogger, "Serial port was not opened: \"{}\"", serial->errorString().toStdString());
         return 1;
     }
     SPDLOG_LOGGER_INFO(mainLogger, "Serial port was opened successfully. Starting modem");
-    #endif
+#endif
 
 
-    Modem *modem = new Modem(serial);
-    Controller *controller = new Controller(modem);
+    Modem* modem = new Modem(serial);
+    Controller* controller = new Controller(modem);
     MainWindow mainWindow(controller);
 
     mainWindow.show();

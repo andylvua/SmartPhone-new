@@ -5,15 +5,11 @@
 #ifndef PHONE_CACHE_MANAGER_HPP
 #define PHONE_CACHE_MANAGER_HPP
 
+#include <QCoreApplication>
 #include <QString>
-#include <string>
+#include <QStandardPaths>
 
 #include "backend/models/models.h"
-
-constexpr const char *CONTACTS_FILEPATH = "../cache/contacts.json";
-constexpr const char *MESSAGES_FILEPATH = "../cache/messages.json";
-constexpr const char *CALLS_FILEPATH = "../cache/calls.json";
-#define LOGS_FILEPATH "../logs/log.txt"
 
 class CacheManager {
 public:
@@ -39,6 +35,17 @@ public:
     static QVector<Message> getMessages(const QString &info);
 
     static void checkCacheFiles();
+
+    static void setCacheDir(const QString &dir) {
+        CONTACTS_FILEPATH = dir + "/contacts.json";
+        CALLS_FILEPATH = dir + "/calls.json";
+        MESSAGES_FILEPATH = dir + "/messages.json";
+    }
+
+private:
+    static QString CONTACTS_FILEPATH;
+    static QString CALLS_FILEPATH;
+    static QString MESSAGES_FILEPATH;
 };
 
 #endif //PHONE_CACHE_MANAGER_HPP

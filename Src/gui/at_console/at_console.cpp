@@ -38,7 +38,7 @@ ATConsoleScreen::ATConsoleScreen(QWidget *parent, Controller *controller)
     commandInput->setValidator(new QRegExpValidator(QRegExp("^AT.*", Qt::CaseInsensitive), this));
 
     QStringListModel *completerModel = new QStringListModel(this);
-    QFile atCommandsFile("/home/andrew/CLionProjects/SmartPhone-dev/assets/at_commands.txt");
+    QFile atCommandsFile(":/assets/at_commands.txt");
     if (!atCommandsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Could not open completions file";
     }

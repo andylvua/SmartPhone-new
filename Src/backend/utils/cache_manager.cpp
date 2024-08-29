@@ -8,12 +8,13 @@
 #include <QJsonObject>
 #include <QFile>
 #include <QVector>
-#include <QDateTime>
 
 #include "backend/utils/cache_manager.h"
 
+QString CacheManager::CONTACTS_FILEPATH;
+QString CacheManager::CALLS_FILEPATH;
+QString CacheManager::MESSAGES_FILEPATH;
 
-#define SEMICOLON_SEPARATOR(...) QStringList{__VA_ARGS__}.join("; ")
 //
 //const auto cacheLogger = spdlog::basic_logger_mt("cache",
 //                                                 LOGS_FILEPATH, true);
@@ -24,7 +25,7 @@ void createIfNotExists(const QString &fileName) {
 
     if (!file.exists()) {
 //        SPDLOG_LOGGER_INFO(cacheLogger, "File {} does not exist, creating", fileName.toStdString());
-        file.open(QIODevice::WriteOnly);
+        file.open(QIODevice::ReadWrite);
         file.close();
     }
 }
