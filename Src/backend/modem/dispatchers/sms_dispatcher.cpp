@@ -28,7 +28,7 @@ void SMSDispatcher::sendSMS(const QUuid &uuid, const QString &recipient, const Q
     smsPending->recipient = recipient;
     smsPending->message = message;
     smsPending->retries = 2;
-    smsPending->result = at_command_res_t::AT_OK;
+    smsPending->result = AT_OK;
     smsQueue.enqueue(smsPending);
 
     if (smsQueue.head() == smsPending) {
@@ -53,7 +53,7 @@ void SMSDispatcher::sendNextSMS() {
 void SMSDispatcher::SMSReadyTimeout() {
     while (!smsQueue.isEmpty()) {
         SMSPending *smsPending = smsQueue.dequeue();
-        smsPending->result = at_command_res_t::AT_OK;
+        smsPending->result = AT_OK;
         emit smsStatusChanged(smsPending->uuid, delivery_status_t::DS_FAILED);
         CacheManager::updateMessageStatus(smsPending->uuid, delivery_status_t::DS_FAILED);
         qDebug() << "SMS failed: TIMEOUT";
@@ -64,7 +64,7 @@ void SMSDispatcher::SMSReadyTimeout() {
 void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
     SMSTimeoout->stop();
 
-    if (command.result == at_command_res_t::AT_OK) {
+    if (command.result == AT_OK) {
         emit smsStatusChanged(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
         CacheManager::updateMessageStatus(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
         qDebug() << "SMS sent";
@@ -178,21 +178,21 @@ void SMSDispatcher::processSMS(const QString &header, const QString &message, in
     deleteMessage(internalModemSmsId);
 }
 
-void SMSDispatcher::onReadSMS(ATCommand *command) {
-    if (command->result != at_command_res_t::AT_OK) {
+void SMSDispatcher::onReadSMS(const ATCommand &command) {
+    if (command.result != AT_OK) {
         qDebug() << "Failed to read SMS";
         return;
     }
-    qDebug() << "Read SMS: " << command->response;
+    qDebug() << "Read SMS: " << command.response;
 
-    QStringList notification = command->response.split("\r\n");
-    QString message = notification[1];
+    QStringList notification = command.response.split("\r\n");
+    const QString& message = notification[1];
 
-    processSMS(notification[0], message, command->command.split("=")[1].toInt());
+    processSMS(notification[0], message, command.command.split("=")[1].toInt());
 }
 
 void SMSDispatcher::onReadListSMS(const ATCommand &command) {
-    if (command.result != at_command_res_t::AT_OK) {
+    if (command.result != AT_OK) {
         qDebug() << "Failed to read SMS list";
         return;
     }
@@ -205,24 +205,22 @@ void SMSDispatcher::onReadListSMS(const ATCommand &command) {
             continue;
         }
 
-        // todo: parse SMS function
-        QString header = notifications[lineIdx];
-        QString message = notifications[++lineIdx];
+        const QString& header = notifications[lineIdx];
+        const QString& message = notifications[++lineIdx];
         processSMS(header, message);
     }
 }
 
-void SMSDispatcher::onDeleteSMS(ATCommand *command) {
-    if (command->result != at_command_res_t::AT_OK) {
-        qDebug() << "Failed to delete SMS with id: " << command->command.split("=")[1].toInt();
-        return;
+void SMSDispatcher::onDeleteSMS(const ATCommand &command) {
+    if (command.result != AT_OK) {
+        qDebug() << "Failed to delete SMS with id: " << command.command.split("=")[1].toInt();
     }
 }
 
 void SMSDispatcher::readIncomingSMS(int internalModemSmsId) {
-    modem->getATChat()->chat("AT+CMGR=" + QString::number(internalModemSmsId), this, SLOT(onReadSMS(ATCommand * )));
+    modem->getATChat()->chat("AT+CMGR=" + QString::number(internalModemSmsId), this, SLOT(onReadSMS(const ATCommand &)));
 }
 
 void SMSDispatcher::deleteMessage(int internalModemSmsId) {
-    modem->getATChat()->chat("AT+CMGD=" + QString::number(internalModemSmsId), this, SLOT(onDeleteSMS(ATCommand * )));
+    modem->getATChat()->chat("AT+CMGD=" + QString::number(internalModemSmsId), this, SLOT(onDeleteSMS(const ATCommand &)));
 }

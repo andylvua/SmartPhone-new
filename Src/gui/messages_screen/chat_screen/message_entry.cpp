@@ -7,23 +7,36 @@
 #include "gui/messages_screen/chat_screen/message_entry.h"
 #include "gui/utils/fa.h"
 
+class MessageLabelWidget : public QLabel {
+    Q_OBJECT
+
+public:
+    explicit MessageLabelWidget(const QString &text, QWidget *parent = nullptr) : QLabel(text, parent) {}
+
+signals:
+    void labelSizeChange();
+
+protected slots:
+    void resizeEvent(QResizeEvent *) override {
+        emit labelSizeChange();
+    }
+};
 
 MessageEntryWidget::MessageEntryWidget(const Message &message, QWidget *parent) : QWidget(parent), message(message) {
     setContextMenuPolicy(Qt::CustomContextMenu);
 
     QVBoxLayout *messageLayout = new QVBoxLayout(this);
     messageLayout->setContentsMargins(0, 0, 0, 0);
-
-    QWidget *messageBoxWidget = new QWidget();
-    QHBoxLayout *messageBoxLayout = new QHBoxLayout(messageBoxWidget);
-    messageBoxLayout->setContentsMargins(0, 0, 0, 0);
-    messageBoxWidget->setMaximumWidth(this->width() * 0.75);
-
     messageLayout->setSpacing(3);
 
-    QLabel *messageLabel = new QLabel();
-    messageLabel->setWordWrap(true);
-    messageLabel->setText(message.message);
+    MessageLabelWidget *messageLabel = new MessageLabelWidget(message.message, this);
+
+    connect(messageLabel, &MessageLabelWidget::labelSizeChange, [messageLabel, this]() {
+        if (messageLabel->width() > (this->width() * 0.75) - 10) {
+            messageLabel->setWordWrap(true);
+            messageLabel->setMinimumWidth((this->width() * 0.75) - 10);
+        }
+    });
 
     QHBoxLayout *messageLabelLayout = new QHBoxLayout();
     messageLabelLayout->setContentsMargins(0, 0, 0, 0);
@@ -40,16 +53,13 @@ MessageEntryWidget::MessageEntryWidget(const Message &message, QWidget *parent) 
         timestampLabel->setAlignment(Qt::AlignRight);
         messageLayout->setAlignment(Qt::AlignRight);
         messageLabelLayout->setAlignment(Qt::AlignRight);
-        messageBoxLayout->setAlignment(Qt::AlignRight);
     } else {
         messageLabel->setObjectName("incomingMessageLabel");
         timestampLabel->setAlignment(Qt::AlignLeft);
         messageLayout->setAlignment(Qt::AlignLeft);
         messageLabelLayout->setAlignment(Qt::AlignLeft);
-        messageBoxLayout->setAlignment(Qt::AlignLeft);
     }
 
-    messageBoxLayout->addWidget(messageLabel);
     messageLabelLayout->addWidget(timestampLabel);
 
     if (message.messageDirection == messageDirection::MD_OUTGOING) {
@@ -59,7 +69,7 @@ MessageEntryWidget::MessageEntryWidget(const Message &message, QWidget *parent) 
         messageLabelLayout->addWidget(deliveryStatus);
     }
 
-    messageLayout->addWidget(messageBoxWidget);
+    messageLayout->addWidget(messageLabel);
     messageLayout->addLayout(messageLabelLayout);
 }
 
@@ -89,5 +99,7 @@ void MessageEntryWidget::setDeliveryStatus(delivery_status_t status) const {
 
     }
 
-    deliveryStatus->setPixmap(icon.pixmap(15, 15));
+    deliveryStatus->setPixmap(icon.pixmap(13, 13));
 }
+
+#include "message_entry.moc"

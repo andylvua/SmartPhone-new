@@ -33,6 +33,8 @@ Q_OBJECT
 
     bool init = false;
 
+    QHash<QString, QString> countryDialCodes;
+
 public:
     explicit CallDispatcher(Modem *modem);
 
@@ -50,6 +52,9 @@ signals:
     void callFailed();
     void callMissed(const QString &number);
 
+private:
+    void loadCountryDialCodes();
+
 private slots:
     void handleClip(const QString &notification);
 
@@ -63,7 +68,7 @@ private slots:
 
     void handleIdle();
 
-    void handleCallCommandResponse(ATCommand *command);
+    void handleCallCommandResponse(const ATCommand &command);
 
 signals:
     void clipHandled();

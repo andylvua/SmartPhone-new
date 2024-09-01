@@ -52,11 +52,11 @@ private slots:
 
     void onCMTI(const QString &notification);
 
-    void onReadSMS(ATCommand *command);
+    void onReadSMS(const ATCommand &command);
 
     void onReadListSMS(const ATCommand &command);
 
-    void onDeleteSMS(ATCommand *command);
+    void onDeleteSMS(const ATCommand &command);
 
 signals:
     void smsStatusChanged(const QUuid &uuid, delivery_status_t status);

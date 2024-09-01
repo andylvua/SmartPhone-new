@@ -16,12 +16,17 @@ MainWindow::MainWindow(Controller* controller, QWidget* parent)
     setFixedSize(480, 900);
     setWindowTitle("Phone App");
 
+    setWindowFlags(Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
+    setObjectName("MainWindow");
+
     statusBar = new StatusBar(this, controller);
     addToolBar(Qt::TopToolBarArea, statusBar);
 
     centralStack = new QStackedWidget(this);
     centralStack->setContentsMargins(0, 0, 0, 0);
     setCentralWidget(centralStack);
+    centralStack->setObjectName("CentralStack");
 
     mainScreen = new MainScreen(this, controller);
     phoneScreen = new PhoneScreen(this, controller);

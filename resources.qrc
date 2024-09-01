@@ -1,5 +1,6 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
     <file>assets/at_commands.txt</file>
+    <file>assets/country_codes.json</file>
 </qresource>
 </RCC>

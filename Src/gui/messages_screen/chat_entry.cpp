@@ -15,6 +15,7 @@ ChatEntryWidget::ChatEntryWidget(const QString &number, const Message &lastMessa
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     QHBoxLayout *itemLayout = new QHBoxLayout();
     QVBoxLayout *messageLayout = new QVBoxLayout();
+    messageLayout->setSpacing(5);
     QHBoxLayout *messageContentLayout = new QHBoxLayout();
 
     messageContentLayout->setContentsMargins(0, 0, 0, 0);

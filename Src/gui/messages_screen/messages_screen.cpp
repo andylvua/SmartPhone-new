@@ -17,7 +17,7 @@
 
 
 MessagesScreen::MessagesScreen(QWidget *parent, Controller *controller)
-        : ApplicationScreen("SMS", parent), controller(controller) {
+        : ApplicationScreen("Messages", parent), controller(controller) {
     setAttribute(Qt::WA_StyledBackground);
 
     this->setObjectName("MesssagesScreen");

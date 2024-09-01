@@ -3,6 +3,8 @@ QListWidget::item:hover {background: transparent;}
 QListWidget::item:selected {background: transparent; border: none; outline: none;}
 QListWidget {background: transparent; border: none; outline: none;}
 
+#MainWindow { background: transparent; }
+#CentralStack { background: transparent; }
 
 #StatusBar {background: black;}
 #statusLabel {font-size: 16px; font-weight: bold;}
@@ -32,12 +34,13 @@ background: black;
     background: transparent;
 }
 
-#MainScreen #NotificationsLabel {font-weight: bold; font-size: 28px;}
+#MainScreen #NotificationsLabel {font-weight: bold; font-size: 30px;}
 
 #NotificationWidget {background-color: #1c1c1c; color: white; border-radius: 20px;}
 #NotificationIconLabel {background-color: #666666; border-radius: 10px;}
 #NotificationTitleLabel {font-weight: bold; font-size: 16px;}
 #NotificationMessageLabel {font-size: 14px;}
+#NotificationTimeLabel {color: gray; font-size: 14px;}
 #NotificationCloseButton {background-color: #666666; border-radius: 10px;}
 #NotificationCloseButton:hover {background-color: #e44845;}
 
@@ -47,7 +50,7 @@ background: black;
 #BackButton:focus {background: transparent; color: #008dff; font-size: 16px; border: none; outline: none;}
 
 #ScreenTitleTop {font-weight: bold; font-size: 18px;}
-#ScreenTitle {font-weight: bold; font-size: 28px;}
+#ScreenTitle {font-weight: bold; font-size: 30px;}
 
 #PhoneScreen {background: black;}
 #historyLabel {font-weight: bold; font-size: 16px;}
@@ -85,9 +88,9 @@ background: black;
 #ChatScreen {background: black;}
 #chatSmallLabel {font-size: 14px; color: gray;}
 #chatScrollArea {border: none;}
-#messageTimestampLabel {font-size: 13px; color: gray;}
-#outgoingMessageLabel {background-color: #2064b4; padding: 7px; border-radius: 10px; font-size: 14px;}
-#incomingMessageLabel {background-color: #383c3c; padding: 7px; border-radius: 10px; font-size: 14px;}
+#messageTimestampLabel {font-size: 12px; color: gray;}
+#outgoingMessageLabel {background-color: #2064b4; padding: 7px; border-radius: 16px; font-size: 14px;}
+#incomingMessageLabel {background-color: #383c3c; padding: 7px; border-radius: 16px; font-size: 14px;}
 
 
 #callCallerNameLabel {font-weight: bold; font-size: 22px;}
@@ -106,6 +109,7 @@ background: black;
 
 #restartButton {color: #e44845; font-size: 14px; background-color: #343434; border-radius: 10px;}
 #restartButton:hover {background-color: #e44845; color: white;}
+#restartButton:focus {background-color: #e44845; color: white; border: none; outline: none;}
 
 #infoButton {background: transparent; color: #008dff;}
 #infoButton:focus {background: transparent; color: #008dff; border: none; outline: none;}

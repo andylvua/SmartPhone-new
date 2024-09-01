@@ -61,6 +61,7 @@ NotificationWidget::NotificationWidget(QListWidgetItem *parentItem, const QIcon 
     rightLayout->setContentsMargins(0, 0, 0, 0);
 
     QLabel *timeLabel = new QLabel(QDateTime::currentDateTime().toString("hh:mm"), this);
+    timeLabel->setObjectName("NotificationTimeLabel");
     timeLabel->setAlignment(Qt::AlignCenter);
     rightLayout->addWidget(timeLabel);
 

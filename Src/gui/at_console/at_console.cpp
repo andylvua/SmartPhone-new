@@ -139,7 +139,7 @@ QListWidgetItem *ATConsoleScreen::addCommand(const QString &command, bool isURC,
 
     item->setSizeHint(widget->sizeHint());
 
-    commandInput->setDisabled(true);
+    commandInput->setDisabled(response.isEmpty());
     commandList->setItemWidget(item, widget);
 
     return item;

@@ -66,8 +66,8 @@ CallScreen::CallScreen(QWidget *parent) : QWidget(parent) {
 
     buttonsLayout->setSpacing(50);
 
-    buttonsLayout->addWidget(answerWidget);
     buttonsLayout->addWidget(rejectWidget);
+    buttonsLayout->addWidget(answerWidget);
 
     layout->addSpacing(70);
     layout->addWidget(callerNameLabel);
@@ -137,6 +137,7 @@ void CallScreen::setupInCall() {
     answerWidget->hide();
     endCallLabel->setText("End Call");
     rejectWidget->show();
+    rejectButton->setDisabled(false);
 }
 
 void CallScreen::setupOutCall() const {
@@ -144,11 +145,13 @@ void CallScreen::setupOutCall() const {
     answerWidget->hide();
     endCallLabel->setText("End Call");
     rejectWidget->show();
+    rejectButton->setDisabled(false);
 }
 
 void CallScreen::setupIncomingCall() const {
     callStatusLabel->setText("Incoming Call");
     answerWidget->show();
+    rejectButton->setDisabled(false);
 }
 
 void CallScreen::setupEndCall() const {

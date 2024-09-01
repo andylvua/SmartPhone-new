@@ -2,6 +2,12 @@
 // Created by andrew on 26.08.24.
 //
 
+#include <QStateMachine>
+#include <QState>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QList>
+
 #include "backend/modem/dispatchers/call_dispatcher.h"
 #include "backend/utils/cache_manager.h"
 
@@ -10,6 +16,8 @@ CallDispatcher::CallDispatcher(Modem *modem) : modem(modem) {
     connect(modem->getNotificationManager(), &NotificationDispatcher::clip, this, &CallDispatcher::handleClip);
     connect(modem->getNotificationManager(), &NotificationDispatcher::ciev, this, &CallDispatcher::handleCiev);
     connect(modem->getNotificationManager(), &NotificationDispatcher::ring, this, &CallDispatcher::handleRing);
+
+    loadCountryDialCodes();
 
     ringTimeout = new QTimer(this);
     ringTimeout->setInterval(1000);
@@ -52,13 +60,25 @@ void CallDispatcher::callRequestHandler(const QString &number) {
         return;
     }
 
+    QString modifiedNumber = number;
+    const QList<decltype(countryDialCodes)::key_type> &keys = countryDialCodes.keys();
+
+    for (const QString &dialCode : keys) {
+        if (number.startsWith(dialCode.mid(1))) {
+            qDebug() << "Call manager: Dial code found. Country: " << countryDialCodes[dialCode];
+            modifiedNumber = "+" + number;
+            break;
+        }
+    }
+
     currentCall = Call{};
     currentCall.callDirection = callDirection::CD_OUTGOING;
     currentCall.callResult = callResult::CR_NO_ANSWER;
-    currentCall.contact.number = number;
+    currentCall.contact.number = modifiedNumber;
     currentCall.startTime = QDateTime::currentDateTime();
 
-    modem->getATChat()->chat("ATD" + number + ";", this, SLOT(handleCallCommandResponse(ATCommand * )));
+    modem->getATChat()->chat("ATD" + modifiedNumber + ";",
+        this, SLOT(handleCallCommandResponse(const ATCommand &)));
 }
 
 void CallDispatcher::acceptCall() {
@@ -67,6 +87,31 @@ void CallDispatcher::acceptCall() {
 
 void CallDispatcher::rejectCall() {
     modem->getATChat()->chat("AT+CHUP");
+}
+
+void CallDispatcher::loadCountryDialCodes() {
+    QFile file(":/assets/country_codes.json");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("Failed to open country dial codes JSON file");
+        return;
+    }
+
+    QByteArray data = file.readAll();
+    file.close();
+
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+    if (jsonDoc.isNull() || !jsonDoc.isArray()) {
+        qWarning("Invalid JSON format for country dial codes");
+        return;
+    }
+
+    QJsonArray jsonArray = jsonDoc.array();
+    for (const auto &value : jsonArray) {
+        QJsonObject obj = value.toObject();
+        QString dialCode = obj["dial_code"].toString();
+        QString countryName = obj["name"].toString();
+        countryDialCodes.insert(dialCode, countryName);
+    }
 }
 
 void CallDispatcher::handleClip(const QString &notification) {
@@ -153,9 +198,8 @@ void CallDispatcher::handleIdle() {
     }
 }
 
-void CallDispatcher::handleCallCommandResponse(ATCommand *command) {
-    if (command->result != AT_OK) {
+void CallDispatcher::handleCallCommandResponse(const ATCommand &command) {
+    if (command.result != AT_OK) {
         emit callFailed();
-        return;
     }
 }

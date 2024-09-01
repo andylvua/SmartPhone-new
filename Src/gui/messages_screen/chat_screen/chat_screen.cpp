@@ -186,11 +186,7 @@ void ChatScreen::addMessage(const Message &message) {
 }
 
 void ChatScreen::onContactSelectionChanged(const QString &selectedContact) {
-    qDebug() << "Selected contact: " << selectedContact;
     QString selectedNumber = contactPicker->currentData().toString();
-    // select number not name
-    // QString selectedNumber = selectedContact;
-    qDebug() << "Selected number: " << selectedNumber;
     if (selectedNumber.isEmpty()) {
         selectedNumber = selectedContact;
     }
@@ -208,7 +204,6 @@ void ChatScreen::showMessageContextMenu(const QPoint &pos) {
 
     QAction *deleteAction = contextMenu.addAction("Delete");
     QAction *copyAction = contextMenu.addAction("Copy");
-    //        QAction *resendAction = contextMenu.addAction("Resend"); // todo: implement later
 
     connect(deleteAction, &QAction::triggered, this, [=, this]() {
         CacheManager::removeMessage(uuid);
@@ -231,6 +226,17 @@ void ChatScreen::showMessageContextMenu(const QPoint &pos) {
         clipboard->setText(message->getMessage().message);
     });
 
+    if (message->getMessage().messageDirection == messageDirection::MD_OUTGOING &&
+        message->getMessage().deliveryStatus == delivery_status_t::DS_FAILED) {
+        contextMenu.addSeparator();
+        QAction *resendAction = contextMenu.addAction("Retry");
+        connect(resendAction, &QAction::triggered, this, [this, message]() {
+            waitingForDelivery.insert(message->getMessage().uuid, message);
+            message->setDeliveryStatus(delivery_status_t::DS_PENDING);
+            CacheManager::updateMessageStatus(message->getMessage().uuid, delivery_status_t::DS_PENDING);
+            controller->sendSMS(message->getMessage().uuid, message->getMessage().number, message->getMessage().message);
+        });
+    }
     contextMenu.exec(message->mapToGlobal(pos));
 }
 
