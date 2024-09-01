@@ -42,12 +42,12 @@ Controller::Controller(Modem *modem, QObject *parent) : QObject(parent) {
     CacheManager::checkCacheFiles();
 
     //simulate incoming sms
-    QTimer::singleShot(5000, this, [this]() {
+    QTimer::singleShot(60'000'000, this, [this]() {
         Message message{QUuid::createUuid(), "+380679027620", "Hello, this is a test message", QDateTime::currentDateTime(), messageDirection::MD_INCOMING};
     CacheManager::addMessage(message);
         emit smsReceived(message);
     });
-    QTimer::singleShot(5000, this, [this]() {
+    QTimer::singleShot(60'000'000, this, [this]() {
         Message message{QUuid::createUuid(), "+380679027620", "Hello, this is a test message", QDateTime::currentDateTime(), messageDirection::MD_INCOMING};
     CacheManager::addMessage(message);
         emit smsReceived(message);
