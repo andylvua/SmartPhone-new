@@ -54,20 +54,15 @@ void MessagesScreen::showEvent(QShowEvent *event) {
 
 void MessagesScreen::populateSmsChats() {
     smsList->clear();
-    QVector<Message> messages = CacheManager::getMessages();
+    QMap<QString, QVector<Message>> messages = CacheManager::getMessages();
 
-    QHash<QString, QVector<Message>> messagesByNumber;
-    for (const auto &message: messages) {
-        messagesByNumber[message.number].append(message);
-    }
-
-    QList<QString> numbers = messagesByNumber.keys();
-    std::sort(numbers.begin(), numbers.end(), [&messagesByNumber](const QString &a, const QString &b) {
-        return messagesByNumber[a].last().dateTime > messagesByNumber[b].last().dateTime;
+    QList<QString> numbers = messages.keys();
+    std::sort(numbers.begin(), numbers.end(), [&messages](const QString &a, const QString &b) {
+        return messages.value(a).last().dateTime > messages.value(b).last().dateTime;
     });
 
     for (const auto &number: numbers) {
-        const Message &lastMessage = messagesByNumber.value(number).last();
+        const Message &lastMessage = messages[number].last();
 
         QListWidgetItem *item = new QListWidgetItem(smsList);
 

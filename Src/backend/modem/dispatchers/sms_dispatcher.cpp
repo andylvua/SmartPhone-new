@@ -55,7 +55,7 @@ void SMSDispatcher::SMSReadyTimeout() {
         SMSPending *smsPending = smsQueue.dequeue();
         smsPending->result = AT_OK;
         emit smsStatusChanged(smsPending->uuid, delivery_status_t::DS_FAILED);
-        CacheManager::updateMessageStatus(smsPending->uuid, delivery_status_t::DS_FAILED);
+        CacheManager::updateMessageStatus(smsPending->recipient, smsPending->uuid, delivery_status_t::DS_FAILED);
         qDebug() << "SMS failed: TIMEOUT";
         delete smsPending;
     }
@@ -66,7 +66,7 @@ void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
 
     if (command.result == AT_OK) {
         emit smsStatusChanged(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
-        CacheManager::updateMessageStatus(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
+        CacheManager::updateMessageStatus(smsQueue.head()->recipient, smsQueue.head()->uuid, delivery_status_t::DS_SENT);
         qDebug() << "SMS sent";
         smsQueue.dequeue();
         sendNextSMS();
@@ -81,7 +81,7 @@ void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
     }
 
     smsPending->result = command.result;
-    CacheManager::updateMessageStatus(smsPending->uuid, delivery_status_t::DS_FAILED);
+    CacheManager::updateMessageStatus(smsPending->recipient, smsPending->uuid, delivery_status_t::DS_FAILED);
     emit smsStatusChanged(smsPending->uuid, delivery_status_t::DS_FAILED);
     smsQueue.dequeue();
     sendNextSMS();

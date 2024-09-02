@@ -52,7 +52,7 @@ void ContactsScreen::addContact(const Contact &entry) {
 
 void ContactsScreen::populateContacts() {
     contactsList->clear();
-    QVector<Contact> contactsEntries = CacheManager::getContacts();
+    QMap<QString, Contact> contactsEntries = CacheManager::getContacts();
     for (const auto &entry: contactsEntries) {
         addContact(entry);
     }

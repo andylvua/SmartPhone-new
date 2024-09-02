@@ -166,13 +166,9 @@ void MainWindow::goToMainScreen() {
 }
 
 void MainWindow::onChatRequested(const QString& number) {
-    QVector<Message> messages = CacheManager::getMessages();
-    QHash<QString, QVector<Message>> messagesByNumber;
-    for (const auto& message: messages) {
-        messagesByNumber[message.number].append(message);
-    }
+    QMap<QString, QVector<Message>> messages = CacheManager::getMessages();
 
-    if (messagesByNumber.contains(number)) {
+    if (messages.contains(number)) {
         smsChatScreen->setNewChat(false);
     } else {
         smsChatScreen->setNewChat(true);

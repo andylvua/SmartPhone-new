@@ -5,15 +5,19 @@
 #include <QTextStream>
 #include <QJsonDocument>
 #include <QJsonArray>
-#include <QJsonObject>
 #include <QFile>
+#include <QDir>
 #include <QVector>
+#include <QDataStream>
 
 #include "backend/utils/cache_manager.h"
 
 QString CacheManager::CONTACTS_FILEPATH;
 QString CacheManager::CALLS_FILEPATH;
 QString CacheManager::MESSAGES_FILEPATH;
+QVector<Call> CacheManager::CALLS = {};
+QMap<QString, QVector<Message>> CacheManager::MESSAGES = {};
+QMap<QString, Contact> CacheManager::CONTACTS = {};
 
 //
 //const auto cacheLogger = spdlog::basic_logger_mt("cache",
@@ -36,15 +40,24 @@ void CacheManager::checkCacheFiles() {
     createIfNotExists(CONTACTS_FILEPATH);
 }
 
+void CacheManager::startupPopulate() {
+    getContacts();
+    getCalls();
+    getMessages();
+}
+// CONTACTS
+
 bool CacheManager::addContact(const QString &name, const QString &number) {
-    QVector<Contact> contacts = getContacts();
-    for (const Contact& contact : contacts) {
-        if (contact.name == name || contact.number == number) {
-            return false;
-        }
+    if (name.isEmpty() || number.isEmpty()) {
+        return false;
     }
-    contacts.append({name, number});
-    return saveContacts(contacts);
+
+    if (CONTACTS.contains(number)) {
+        return false;
+    }
+//   SPDLOG_LOGGER_INFO(cacheLogger, "Adding contact: {} {}", name.toStdString(), number.toStdString());
+    CONTACTS.insert(number, {name, number});
+    return saveContacts();
 }
 
 Contact CacheManager::getContact(const QString &info) {
@@ -52,61 +65,46 @@ Contact CacheManager::getContact(const QString &info) {
         return {};
     }
 
+    if (getContacts().contains(info)) {
 //    SPDLOG_LOGGER_INFO(cacheLogger, "Getting contact by name or number: {}", info.toStdString());
-    QFile file(CONTACTS_FILEPATH);
-    file.open(QIODevice::ReadOnly);
-
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    file.close();
-
-    QJsonArray jsonArray = doc.array();
-    for (const QJsonValue& value : jsonArray) {
-        Contact contact = Contact::fromJson(value.toObject());
-        if (contact.name == info || contact.number.contains(info)) {
-            return contact;
-        }
+        return CONTACTS[info];
     }
 
     return {};
 }
 
 bool CacheManager::removeContact(const Contact &contact) {
-    QVector<Contact> contacts = getContacts();
 
-    auto it = std::remove_if(contacts.begin(), contacts.end(), [&contact](const Contact& c) {
-        return c.name == contact.name && c.number == contact.number;
-    });
-
-    if (it != contacts.end()) {
-        contacts.erase(it, contacts.end());
-        return saveContacts(contacts);
+    if (CONTACTS.contains(contact.number)) {
+//        SPDLOG_LOGGER_INFO(cacheLogger, "Removing contact: {} {}", contact.name.toStdString(),
+//        contact.number.toStdString());
+        CONTACTS.remove(contact.number);
+        return saveContacts();
     }
 
     return false;
 }
 
 bool CacheManager::editContact(const Contact &contact, const QString &newName, const QString &newNumber) {
-    QVector<Contact> contacts = getContacts();
 
-    for (Contact& c : contacts) {
-        if (c.name == contact.name && c.number == contact.number) {
-            c.name = newName;
-            c.number = newNumber;
-            return saveContacts(contacts);
-        }
+    if (CONTACTS.contains(contact.number)) {
+//        SPDLOG_LOGGER_INFO(cacheLogger, "Editing contact: {} {} to {} {}", contact.name.toStdString(),
+//        contact.number.toStdString(), newName.toStdString(), newNumber.toStdString());
+        CONTACTS.remove(contact.number);
+        CONTACTS.insert(newNumber, {newName, newNumber});
+        return saveContacts();
     }
 
     return false;
 }
 
-bool CacheManager::saveContacts(const QVector<Contact>& contacts) {
+bool CacheManager::saveContacts() {
     QFile file(CONTACTS_FILEPATH);
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
-
     QJsonArray jsonArray;
-    for (const Contact& contact : contacts) {
+    for (const Contact &contact: CONTACTS) {
         jsonArray.append(contact.toJson());
     }
 
@@ -116,63 +114,61 @@ bool CacheManager::saveContacts(const QVector<Contact>& contacts) {
     return true;
 }
 
-QVector<Contact> CacheManager::getContacts() {
+const QMap<QString, Contact> &CacheManager::getContacts() {
+    if (!CONTACTS.isEmpty()) {
+        return CONTACTS;
+    }
+
     QFile file(CONTACTS_FILEPATH);
     if (!file.open(QIODevice::ReadOnly)) {
-        return {};
+        return CONTACTS;
     }
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
 
-    QVector<Contact> contacts;
     QJsonArray jsonArray = doc.array();
-    for (const QJsonValue& value : jsonArray) {
-        contacts.append(Contact::fromJson(value.toObject()));
+    for (const auto &value: jsonArray) {
+        CONTACTS.insert(value.toObject()["number"].toString(), Contact::fromJson(value.toObject()));
     }
 
-    return contacts;
+    return CONTACTS;
 }
-
 
 // CALLS
 
 bool CacheManager::addCall(Call &call) {
-    QVector<Call> calls = getCalls();
-
     Contact contact = getContact(call.contact.number);
     if (!contact.name.isEmpty()) {
         call.contact = contact;
     }
 
-    calls.append(call);
+    CALLS.append(call);
 
-    return saveCalls(calls);
+    return saveCalls();
 }
 
 bool CacheManager::removeCall(const Call &call) {
-    QVector<Call> calls = getCalls();
-
-    auto it = std::remove_if(calls.begin(), calls.end(), [&call](const Call& c) {
+    auto it = std::remove_if(CALLS.begin(), CALLS.end(), [&call](const Call &c) {
         return c.uuid == call.uuid;
     });
 
-    if (it != calls.end()) {
-        calls.erase(it, calls.end());
-        return saveCalls(calls);
+    if (it != CALLS.end()) {
+        CALLS.erase(it, CALLS.end());
+        return saveCalls();
     }
 
     return false;
 }
 
-bool CacheManager::saveCalls(const QVector<Call> &calls) {
+bool CacheManager::saveCalls() {
     QFile file(CALLS_FILEPATH);
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
 
     QJsonArray jsonArray;
-    for (const Call& call : calls) {
+    for (const Call &call: CALLS) {
         jsonArray.append(call.toJson());
     }
 
@@ -182,55 +178,72 @@ bool CacheManager::saveCalls(const QVector<Call> &calls) {
     return true;
 }
 
-QVector<Call> CacheManager::getCalls() {
+const QVector<Call> &CacheManager::getCalls() {
+    if (!CALLS.isEmpty()) {
+        return CALLS;
+    }
+
     QFile file(CALLS_FILEPATH);
+
     if (!file.open(QIODevice::ReadOnly)) {
-        return {};
+        return CALLS;
     }
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
 
-    QVector<Call> calls;
     QJsonArray jsonArray = doc.array();
-    for (const QJsonValue& value : jsonArray) {
-        calls.append(Call::fromJson(value.toObject()));
+    for (const auto &value: jsonArray) {
+        CALLS.append(Call::fromJson(value.toObject()));
     }
 
-    return calls;
+    return CALLS;
 }
-
 
 // MESSAGES
 
 bool CacheManager::addMessage(const Message &message) {
-    QVector<Message> messages = getMessages();
+    MESSAGES[message.number].append(message);
 
-    messages.append(message);
-
-    return saveMessages(messages);
+    return saveMessages(message.number);
 }
 
 bool CacheManager::updateMessageStatus(const QUuid &uuid, delivery_status_t status) {
-    QVector<Message> messages = getMessages();
+    for (auto &chat: MESSAGES) {
+        for (auto &message: chat) {
+            if (message.uuid == uuid) {
+                message.deliveryStatus = status;
+                return saveMessages(message.number);
+            }
+        }
+    }
 
-    for (Message& message : messages) {
+    return false;
+}
+
+bool CacheManager::updateMessageStatus(const QString &info, const QUuid &uuid, delivery_status_t status) {
+    if (!MESSAGES.contains(info)) {
+        return false;
+    }
+
+    for (auto &message: MESSAGES[info]) {
         if (message.uuid == uuid) {
             message.deliveryStatus = status;
-            return saveMessages(messages);
+            return saveMessages(info);
         }
     }
-
     return false;
 }
 
-bool CacheManager::updateMessageStatus(const QUuid &uuid, read_status_t status) {
-    QVector<Message> messages = getMessages();
+bool CacheManager::updateMessageStatus(const QString &info, const QUuid &uuid, read_status_t status) {
+    if (!MESSAGES.contains(info)) {
+        return false;
+    }
 
-    for (Message& message : messages) {
+    for (auto &message: MESSAGES[info]) {
         if (message.uuid == uuid) {
             message.readStatus = status;
-            return saveMessages(messages);
+            return saveMessages(info);
         }
     }
 
@@ -238,87 +251,91 @@ bool CacheManager::updateMessageStatus(const QUuid &uuid, read_status_t status) 
 }
 
 
-QVector<Message> CacheManager::getMessages() {
-    QFile file(MESSAGES_FILEPATH);
+const QMap<QString, QVector<Message>> &CacheManager::getMessages() {
+    if (!MESSAGES.isEmpty()) {
+        return MESSAGES;
+    }
+
+    if (!QDir(MESSAGES_FILEPATH).exists()) {
+        // create directory
+        QDir().mkdir(MESSAGES_FILEPATH);
+    }
+
+    QDir dir(MESSAGES_FILEPATH);
+    for (const QString &file: dir.entryList(QDir::Files)) {
+        getMessages(file.split(".")[0]);
+    }
+    return MESSAGES;
+}
+
+
+const QVector<Message> &CacheManager::getMessages(const QString &info) {
+    if (info.isEmpty()) {
+        return QVector<Message>();
+    }
+    if (MESSAGES.contains(info)) {
+        return MESSAGES[info];
+    }
+
+    QFile file(MESSAGES_FILEPATH + info + ".json");
     if (!file.open(QIODevice::ReadOnly)) {
-        return {};
+//        SPDLOG_LOGGER_INFO(cacheLogger, "No messages file found");
+        return QVector<Message>();
     }
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
 
-    QVector<Message> messages;
     QJsonArray jsonArray = doc.array();
-    for (const QJsonValue& value : jsonArray) {
-        messages.append(Message::fromJson(value.toObject()));
+    for (const auto& value: jsonArray) {
+        MESSAGES[info].append(Message::fromJson(value.toObject()));
     }
 
-    return messages;
+    return MESSAGES[info];
 }
 
-QVector<Message> CacheManager::getMessages(const QString &info) {
-    QFile file(MESSAGES_FILEPATH);
-    if (!file.open(QIODevice::ReadOnly)) {
-        return {};
+bool CacheManager::saveMessages(const QString &info) {
+    if (QDir(MESSAGES_FILEPATH).exists()) {
+        QDir().mkdir(MESSAGES_FILEPATH);
     }
 
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    file.close();
-
-    QVector<Message> messages;
-    QJsonArray jsonArray = doc.array();
-    for (const QJsonValue& value : jsonArray) {
-        Message message = Message::fromJson(value.toObject());
-        if (message.number == info) {
-            messages.append(message);
-        }
-    }
-
-    return messages;
-}
-
-bool CacheManager::saveMessages(const QVector<Message> &messages) {
-    QFile file(MESSAGES_FILEPATH);
+    QFile file(MESSAGES_FILEPATH + info + ".json");
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
 
     QJsonArray jsonArray;
-    for (const Message &message: messages) {
+    for (const Message &message: MESSAGES[info]) {
         jsonArray.append(message.toJson());
     }
 
     QJsonDocument doc(jsonArray);
     file.write(doc.toJson());
     file.close();
+
     return true;
 }
 
-bool CacheManager::removeMessage(const QUuid &uuid) {
-    QVector<Message> messages = getMessages();
-
-    auto it = std::remove_if(messages.begin(), messages.end(), [&uuid](const Message& m) {
+bool CacheManager::removeMessage(const QString &info, const QUuid &uuid) {
+    if (!MESSAGES.contains(info)) {
+        return false;
+    }
+    auto it = std::remove_if(MESSAGES[info].begin(), MESSAGES[info].end(), [&uuid](const Message &m) {
         return m.uuid == uuid;
     });
 
-    if (it != messages.end()) {
-        messages.erase(it, messages.end());
-        return saveMessages(messages);
+    if (it != MESSAGES[info].end()) {
+        MESSAGES[info].erase(it, MESSAGES[info].end());
+        return saveMessages(info);
     }
 
     return false;
 }
 
 bool CacheManager::removeMessages(const QString &info) {
-    QVector<Message> messages = getMessages();
-
-    auto it = std::remove_if(messages.begin(), messages.end(), [&info](const Message& m) {
-        return m.number == info;
-    });
-
-    if (it != messages.end()) {
-        messages.erase(it, messages.end());
-        return saveMessages(messages);
+    if (MESSAGES.contains(info)) {
+        MESSAGES.remove(info);
+        return saveMessages(info);
     }
 
     return false;

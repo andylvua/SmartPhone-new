@@ -40,6 +40,7 @@ Controller::Controller(Modem *modem, QObject *parent) : QObject(parent) {
     connect(networkManager, &NetworkManager::terminated, this, &Controller::GPRSTerminated);
 
     CacheManager::checkCacheFiles();
+    CacheManager::startupPopulate();
 
     //simulate incoming sms
     QTimer::singleShot(5000, this, [this]() {

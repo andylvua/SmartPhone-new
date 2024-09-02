@@ -7,6 +7,8 @@
 
 #include <QString>
 #include <QJsonObject>
+#include <QUuid>
+#include <QDateTime>
 #include <utility>
 
 using callResult_t = enum class callResult {

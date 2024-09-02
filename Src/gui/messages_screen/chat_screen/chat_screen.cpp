@@ -88,7 +88,7 @@ void ChatScreen::setNewChat(bool newChat) {
         contactPicker->clear();
         contactPicker->setPlaceholderText("Select a contact or type a number");
         contactPicker->setCurrentIndex(-1);
-        QVector<Contact> contacts = CacheManager::getContacts();
+        QMap<QString, Contact> contacts = CacheManager::getContacts();
         for (const auto &contact: contacts) {
             contactPicker->addItem(contact.name, contact.number);
         }
@@ -120,7 +120,7 @@ bool ChatScreen::isChatVisible(const QString &contactOrNumber) const {
 
 void ChatScreen::loadChatHistory(const QString &contactOrNumber) {
     clearChatHistory();
-    QVector<Message> messages = CacheManager::getMessages(contactOrNumber);
+    const QVector<Message> messages = CacheManager::getMessages(contactOrNumber);
     for (const auto &message: messages) {
         addMessage(message);
     }
@@ -172,7 +172,7 @@ void ChatScreen::addMessage(const Message &message) {
 
     if (message.messageDirection == messageDirection::MD_INCOMING) {
         if (message.readStatus != read_status_t::RS_READ) {
-            CacheManager::updateMessageStatus(message.uuid, read_status_t::RS_READ);
+            CacheManager::updateMessageStatus(message.number, message.uuid, read_status_t::RS_READ);
             emit smsRead(message.uuid);
         }
     } else {
@@ -196,6 +196,7 @@ void ChatScreen::onContactSelectionChanged(const QString &selectedContact) {
 void ChatScreen::showMessageContextMenu(const QPoint &pos) {
     MessageEntryWidget *message = qobject_cast<MessageEntryWidget *>(sender());
     QUuid uuid = message->getMessage().uuid;
+    QString number = message->getMessage().number;
     QLabel *header = message->getHeader();
     MessageEntryWidget *nextMessage = message->getNextMessage();
 
@@ -206,7 +207,7 @@ void ChatScreen::showMessageContextMenu(const QPoint &pos) {
     QAction *copyAction = contextMenu.addAction("Copy");
 
     connect(deleteAction, &QAction::triggered, this, [=, this]() {
-        CacheManager::removeMessage(uuid);
+        CacheManager::removeMessage(number, uuid);
         delete message;
         scrollOnAdd = false;
 
@@ -233,7 +234,7 @@ void ChatScreen::showMessageContextMenu(const QPoint &pos) {
         connect(resendAction, &QAction::triggered, this, [this, message]() {
             waitingForDelivery.insert(message->getMessage().uuid, message);
             message->setDeliveryStatus(delivery_status_t::DS_PENDING);
-            CacheManager::updateMessageStatus(message->getMessage().uuid, delivery_status_t::DS_PENDING);
+            CacheManager::updateMessageStatus(message->getMessage().number, message->getMessage().uuid, delivery_status_t::DS_PENDING);
             controller->sendSMS(message->getMessage().uuid, message->getMessage().number, message->getMessage().message);
         });
     }
