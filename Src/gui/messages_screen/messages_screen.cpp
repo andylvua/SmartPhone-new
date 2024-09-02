@@ -67,11 +67,9 @@ void MessagesScreen::populateSmsChats() {
     });
 
     for (const auto &number: numbers) {
-        const Message &lastMessage = messagesByNumber.value(number).last();
-
         QListWidgetItem *item = new QListWidgetItem(smsList);
 
-        ChatEntryWidget *chatEntry = new ChatEntryWidget(number, lastMessage, this);
+        ChatEntryWidget *chatEntry = new ChatEntryWidget(number, messagesByNumber.value(number).last(), this);
         item->setSizeHint(chatEntry->sizeHint());
 
         smsList->setItemWidget(item, chatEntry);

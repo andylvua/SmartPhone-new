@@ -26,29 +26,27 @@ Q_OBJECT
 public:
     explicit Controller(Modem *modem, QObject *parent = nullptr);
 
-    Modem::ModemInfo getModemInfo();
+    Modem::ModemInfo getModemInfo() const;
     void getSignalStrength();
 
     void makeCall(const QString &number);
     void sendSMS(const QUuid &uuid, const QString &contactOrNumber, const QString &message);
 
-    void makeUSSDRequest(const QString &ussdCode);
+    void makeUSSDRequest(const QString &ussdCode) const;
 
-    void setATConsoleMode(bool enabled);
-    void sendATCommand(const QString &command, QObject *receiver, const char *slot);
+    void setATConsoleMode(bool enabled) const;
+    void sendATCommand(const QString &command, QObject *receiver, const char *slot) const;
 
-    void restart();
+    void restart() const;
 
-    void turnOnMobileData();
-    void turnOffMobileData();
+    void turnOnMobileData() const;
+    void turnOffMobileData() const;
 
 public slots:
-
-    void rejectCall();
-    void acceptCall();
+    void rejectCall() const;
+    void acceptCall() const;
 
 signals:
-
     void incomingCall(const QString &callerNumber, const QString &callerName = "");
     void outgoingCall(const QString &calleeNumber, const QString &calleeName = "");
     void callAnswered();

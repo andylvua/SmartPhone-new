@@ -42,7 +42,7 @@ private slots:
 
     void addCommandResponse(const ATCommand &response);
 
-    QListWidgetItem *addCommand(const QString &command, bool isURC = false, const QString &response = "");
+    QListWidgetItem *addCommand(const QString &command, bool isURC = false, const QString &response = "") const;
 
     void addURC(const QString &urc);
 

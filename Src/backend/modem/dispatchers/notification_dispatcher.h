@@ -21,12 +21,14 @@ signals:
     void ciev(const QString &notification);
     void ring();
     void cmgs(const QString &notification);
-    void cds(const QString &notification);
+    void cds(const QByteArray &notification);
     void cmti(const QString &notification);
     void cusd(const QString &notification);
 
 private slots:
     void handleNotification(const QString &type, const QString &notification);
+
+    void handlePduNotification(const QString &type, const QByteArray &notification);
 
     void handleCallNotification(const QString &notification);
 };

@@ -2,6 +2,8 @@
 // Created by andrew on 26.08.24.
 //
 
+#include <QRegularExpression>
+
 #include "backend/at_chat.h"
 
 namespace {
@@ -41,7 +43,7 @@ namespace {
         {"RING", NOTIFICATION},
         {"+CIEV:", NOTIFICATION},
         {"+CLIP:", NOTIFICATION},
-        {"+CDS:", NOTIFICATION},
+        {"+CDS:", PDU_NOTIFICATION},
         {"+CMGS:", NOTIFICATION},
         {"+CMTI:", NOTIFICATION},
         {"+CUSD:", NOTIFICATION},
@@ -62,6 +64,35 @@ namespace {
 
     at_command_res_t getCommandRes(const QString &response) {
         return commandRes.contains(response) ? commandRes[response] : AT_UNKNOWN_ERROR;
+    }
+
+    QByteArray fromHex(const QString& hex) {
+        QByteArray bytes;
+        int nibble;
+
+        int flag = 0;
+        int value = 0;
+        int size = 0;
+        for (int posn = 0; posn < hex.length(); ++posn) {
+            if (uint ch = hex[posn].unicode(); ch >= '0' && ch <= '9' ) {
+                nibble = ch - '0';
+            } else if ( ch >= 'A' && ch <= 'F' ) {
+                nibble = ch - 'A' + 10;
+            } else if ( ch >= 'a' && ch <= 'f' ) {
+                nibble = ch - 'a' + 10;
+            } else {
+                continue;
+            }
+            value = (value << 4) | nibble;
+            flag = !flag;
+            if ( !flag ) {
+                bytes.resize( size + 1 );
+                bytes[size++] = static_cast<char>(value);
+                value = 0;
+            }
+        }
+
+        return bytes;
     }
 }
 
@@ -175,13 +206,30 @@ bool ATChat::processLine(const QString &line) {
 
     switch (prefixType) {
         case UNKNOWN:
+            if (!lastNotification.isEmpty()) {
+                qDebug() << "PDU notification on Unknown: " << lastNotification;
+                QString type = lastNotification;
+                QByteArray pdu;
+
+                if (type.count(',') >= 2) {
+                    pdu = line.toLatin1();
+                } else {
+                    pdu = fromHex(line);
+                }
+
+                lastNotification.clear();
+
+                emit pduNotification(type, pdu);
+                return false;
+            }
+
             if (command != nullptr) {
                 command->response.append(command->response.isEmpty() ? "" : "\r\n");
                 command->response.append(m_readData);
                 return true;
-            } else {
-                qDebug() << "Unknown prefix type: " << m_readData;
             }
+
+            qDebug() << "Unknown prefix type: " << m_readData;
             break;
         case TERMINATOR:
             if (command != nullptr) {
@@ -201,16 +249,22 @@ bool ATChat::processLine(const QString &line) {
             // We can consider retrying the command if the echo is not received
             break;
 
+        case PDU_NOTIFICATION: {
+            lastNotification = line;
+            qDebug() << "PDU notification: " << line;
+        }
+
         case NOTIFICATION: {
             if (m_readData.startsWith("RING")) {
                 qDebug() << "Call notification: " << m_readData;
                 emit callNotification(m_readData);
                 break;
             }
-            QRegExp re("(\\+\\w+:)\\s*(.+)");
-            if (re.indexIn(m_readData) >= 0) {
-                QString type = re.cap(1);
-                QString value = re.cap(2);
+            QRegularExpression re("(\\+\\w+:)\\s*(.+)");
+            QRegularExpressionMatch match = re.match(m_readData);
+            if (match.hasMatch()) {
+                QString type = match.captured(1);
+                QString value = match.captured(2);
                 qDebug() << "Notification: " << type << " " << value;
                 emit notification(type, value);
             }
@@ -307,7 +361,7 @@ void ATChat::handleError(QSerialPort::SerialPortError serialPortError) {
     }
 }
 
-void ATChat::sendCommand(const QString &command) {
+void ATChat::sendCommand(const QString &command) const {
     QByteArray data = command.toUtf8() + "\r\n";
     m_serialPort->write(data);
 }

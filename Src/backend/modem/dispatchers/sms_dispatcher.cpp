@@ -4,6 +4,7 @@
 
 #include "backend/modem/dispatchers/sms_dispatcher.h"
 #include "backend/utils/cache_manager.h"
+#include "libs/pdulib/pdulib.h"
 
 
 SMSDispatcher::SMSDispatcher(Modem *modem) : modem(modem) {
@@ -18,7 +19,7 @@ SMSDispatcher::SMSDispatcher(Modem *modem) : modem(modem) {
 }
 
 void SMSDispatcher::checkForIncomingSMS() {
-    modem->getATChat()->chat("AT+CMGL=\"REC UNREAD\"", this, SLOT(onReadListSMS(const ATCommand &)));
+    modem->getATChat()->chat("AT+CMGL=0", this, SLOT(onReadListSMS(const ATCommand &)));
 }
 
 
@@ -46,7 +47,12 @@ void SMSDispatcher::sendNextSMS() {
 
     SMSPending *smsPending = smsQueue.head();
     qDebug() << "Sending SMS (MANAGER): " << smsPending->message;
-    modem->getATChat()->chat("AT+CMGS=" + smsPending->recipient, smsPending->message, this,
+    PDU pdu;
+    int length = pdu.encodePDU(smsPending->recipient.toStdString().c_str(),
+                                    smsPending->message.toStdString().c_str(), messageReference);
+
+
+    modem->getATChat()->chat("AT+CMGS=" + QString::number(length), pdu.getSMS(), this,
                       SLOT(onTransmitSMS(const ATCommand &)), 100000);
 }
 
@@ -65,6 +71,7 @@ void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
     SMSTimeoout->stop();
 
     if (command.result == AT_OK) {
+        waitingDeliveryReport[messageReference++] = smsQueue.head()->uuid;
         emit smsStatusChanged(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
         CacheManager::updateMessageStatus(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
         qDebug() << "SMS sent";
@@ -88,21 +95,20 @@ void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
 }
 
 void SMSDispatcher::onCMGS(const QString &notification) {
-    if (smsQueue.isEmpty()) {
-        return;
-    }
-
-    SMSPending *smsPending = smsQueue.head();
-    waitingDeliveryReport[notification.toInt()] = smsPending->uuid;
+    Q_DECL_UNUSED_MEMBER
 }
 
-void SMSDispatcher::onCDS(const QString &notification) {
-    QStringList parts = notification.split(",");
-    if (parts.size() < 2) {
-        return;
-    }
+void SMSDispatcher::onCDS(const QByteArray &notification) {
+    qDebug() << "SMS delivery report: " << notification;
 
-    int internalModemSmsId = parts[1].toInt();
+    int index = 1;
+    index += notification[0] & 0xff;
+    ++index;
+
+    if (notification.size() < index + 1)
+        return;
+
+    int internalModemSmsId = notification[index] & 0xff;
     QUuid smsId = waitingDeliveryReport.value(internalModemSmsId);
     if (!smsId.isNull()) {
         waitingDeliveryReport.remove(internalModemSmsId);
@@ -122,32 +128,15 @@ void SMSDispatcher::onCMTI(const QString &notification) {
     readIncomingSMS(internalModemSmsId);
 }
 
-QDateTime dateTimeFromSMSHeader(const QString &header) {
-    QRegExp timeRe("\\d{4}/\\d{2}/\\d{2},\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}");
-    timeRe.indexIn(header);
-    return QDateTime::fromString(timeRe.cap(0), "yyyy/MM/dd,HH:mm:sszzz");
-}
-
-QStringList headerPartsFromSMSHeader(const QString &header) {
-    QRegExp re("(\\+\\w+:)\\s*(.+)");
-    if (re.indexIn(header) < 0) {
-        qDebug() << "Failed to parse SMS";
-        return {};
-    }
-    QString value = re.cap(2);
-    return value.split(",");
-}
-
 void SMSDispatcher::processSMS(const QString &header, const QString &message, int internalModemSmsId = -1) {
-    auto dateTime = dateTimeFromSMSHeader(header);
-
-    QRegExp re("(\\+\\w+:)\\s*(.+)");
-    if (re.indexIn(header) < 0) {
+    QRegularExpression re("(\\+\\w+:)\\s*(.+)");
+    QRegularExpressionMatch match = re.match(header);
+    if (!match.hasMatch()) {
         qDebug() << "Failed to parse SMS";
         return;
     }
-    auto type = re.cap(1);
-    auto value = re.cap(2);
+    auto type = match.captured(1);
+    auto value = match.captured(2);
     auto parts = value.split(",");
 
     if (type == "+CMGL:") {
@@ -159,17 +148,21 @@ void SMSDispatcher::processSMS(const QString &header, const QString &message, in
         return;
     }
 
-    bool alreadyRead = parts[0].contains("REC READ");
+    bool alreadyRead = parts[0].toInt() == 1;
     if (alreadyRead) {
         return;
     }
 
-    auto number = parts[1].remove("\"").trimmed();
-
-    Message msg = Message(QUuid::createUuid().toString(), number, message, dateTime, messageDirection::MD_INCOMING);
+    PDU pdu;
+    pdu.decodePDU(message.toStdString().c_str());
+    QString number = pdu.getSender();
+    QString message_text = pdu.getText();
+    QDateTime dateTime = QDateTime::fromString(pdu.getTimeStamp(), "yyMMddHHmmsszz");
+    dateTime = dateTime.addYears(100);
+    Message msg = Message(QUuid::createUuid(), number, message_text, dateTime, messageDirection::MD_INCOMING);
     qDebug() << "Incoming SMS: " <<
                 "Number: " << number <<
-                "Message: " << message <<
+                "Message: " << message_text <<
                 "DateTime: " << dateTime.toString("dd.MM.yyyy hh:mm:ss");
 
     CacheManager::addMessage(msg);

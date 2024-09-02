@@ -35,7 +35,8 @@ ATConsoleScreen::ATConsoleScreen(QWidget *parent, Controller *controller)
     commandInput = new QLineEdit(this);
     commandInput->setPlaceholderText("Enter AT command...");
     commandInput->setFixedHeight(40);
-    commandInput->setValidator(new QRegExpValidator(QRegExp("^AT.*", Qt::CaseInsensitive), this));
+    commandInput->setValidator(new QRegularExpressionValidator(
+        QRegularExpression("^AT.*", QRegularExpression::CaseInsensitiveOption), this));
 
     QStringListModel *completerModel = new QStringListModel(this);
     QFile atCommandsFile(":/assets/at_commands.txt");
@@ -132,7 +133,7 @@ void ATConsoleScreen::hideEvent(QHideEvent *event) {
     controller->setATConsoleMode(false);
 }
 
-QListWidgetItem *ATConsoleScreen::addCommand(const QString &command, bool isURC, const QString &response) {
+QListWidgetItem *ATConsoleScreen::addCommand(const QString &command, bool isURC, const QString &response) const {
     QListWidgetItem *item = new QListWidgetItem(commandList);
 
     CommandEntryWidget *widget = new CommandEntryWidget(command, isURC, response);

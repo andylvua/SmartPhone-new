@@ -7,7 +7,7 @@
 #include <QWebEngineProfile>
 #include <QTimer>
 #include <QMetaObject>
-
+#include <QRegularExpression>
 
 #include "gui/browser_screen/browser_screen.h"
 #include "gui/utils/fa.h"
@@ -72,8 +72,8 @@ BrowserScreen::BrowserScreen(QWidget *parent) : ApplicationScreen("Browser", par
 
 void BrowserScreen::loadPageFromAddressBar() {
     QString input = addressBar->text();
-    QRegExp urlRegex("^(http://|https://)?[a-z0-9]+([\\-\\.]{1}[a-z0-9]+)*\\.[a-z]{2,5}(:[0-9]{1,5})?(\\/[^\\s]*)?$");
-    if (urlRegex.exactMatch(input)) {
+    QRegularExpression urlRegex("^(http://|https://)?[a-z0-9]+([\\-\\.]{1}[a-z0-9]+)*\\.[a-z]{2,5}(:[0-9]{1,5})?(\\/[^\\s]*)?$");
+    if (urlRegex.match(input).hasMatch()) {
         QUrl url = QUrl::fromUserInput(input);
         browser->load(url);
     } else {
