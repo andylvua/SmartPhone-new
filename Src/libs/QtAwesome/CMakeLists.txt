@@ -39,8 +39,8 @@ message(STATUS "Building QTAWESOME: ${QTAWESOME_VERSION}")
 
 project(QtAwesome VERSION 1 DESCRIPTION "Add Font Awesome icons to your Qt application")
 
-find_package(QT NAMES Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)

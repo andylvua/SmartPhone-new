@@ -16,6 +16,7 @@
 enum prefix_t {
     TERMINATOR,
     NOTIFICATION,
+    PDU_NOTIFICATION,
     TERMINATOR_OR_NOTIFICATION,
     COMMAND_ECHO,
     UNKNOWN
@@ -28,6 +29,7 @@ Q_OBJECT
     SerialPort *m_serialPort = nullptr;
     QByteArray m_readData;
 
+    QString lastNotification;
     QTimer *timeoutTimer;
     int timeout = 500;
     int retries = 0;
@@ -38,7 +40,7 @@ Q_OBJECT
     } mode = NORMAL;
 
 public:
-    ATChat(SerialPort *serialPort);
+    explicit ATChat(SerialPort *serialPort);
 
     void chat(const QString &command);
 
@@ -53,6 +55,7 @@ public slots:
 
 signals:
     void notification(const QString &type, const QString &notification);
+    void pduNotification(const QString &type, const QByteArray &notification);
     void callNotification(const QString &notification);
     void urc(const QString &notification);
 
@@ -69,9 +72,9 @@ private slots:
 
     void handleTimeout();
 
-    void handleError(QSerialPort::SerialPortError serialPortError);
+    static void handleError(QSerialPort::SerialPortError serialPortError);
 
-    void sendCommand(const QString &command);
+    void sendCommand(const QString &command) const;
 
 signals:
     void commandRequested(const QString &command);

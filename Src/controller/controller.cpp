@@ -9,7 +9,7 @@
 
 Controller::Controller(Modem *modem, QObject *parent) : QObject(parent) {
     this->modem = modem;
-    notificationManager = new NotificationDispatcher(modem->getATChat());
+    notificationManager = modem->getNotificationManager();
     callManager = new CallDispatcher(modem);
     smsManager = new SMSDispatcher(modem);
     networkManager = new NetworkManager();
@@ -43,19 +43,19 @@ Controller::Controller(Modem *modem, QObject *parent) : QObject(parent) {
     CacheManager::startupPopulate();
 
     //simulate incoming sms
-    QTimer::singleShot(5000, this, [this]() {
+    QTimer::singleShot(60'000'000, this, [this]() {
         Message message{QUuid::createUuid(), "+380679027620", "Hello, this is a test message", QDateTime::currentDateTime(), messageDirection::MD_INCOMING};
     CacheManager::addMessage(message);
         emit smsReceived(message);
     });
-    QTimer::singleShot(5000, this, [this]() {
+    QTimer::singleShot(60'000'000, this, [this]() {
         Message message{QUuid::createUuid(), "+380679027620", "Hello, this is a test message", QDateTime::currentDateTime(), messageDirection::MD_INCOMING};
     CacheManager::addMessage(message);
         emit smsReceived(message);
     });
 }
 
-Modem::ModemInfo Controller::getModemInfo() {
+Modem::ModemInfo Controller::getModemInfo() const {
     return modem->getModemInfo();
 }
 
@@ -63,7 +63,7 @@ void Controller::makeCall(const QString &number) {
     emit callRequested(number);
 }
 
-void Controller::makeUSSDRequest(const QString &ussdCode) {
+void Controller::makeUSSDRequest(const QString &ussdCode) const {
     modem->getATChat()->chat("AT+CUSD=1,\"" + ussdCode + "\",15");
 }
 
@@ -72,11 +72,11 @@ void Controller::sendSMS(const QUuid &uuid, const QString &contactOrNumber, cons
     emit smsRequested(uuid, contactOrNumber, message);
 }
 
-void Controller::setATConsoleMode(bool enabled) {
+void Controller::setATConsoleMode(bool enabled) const {
     modem->getATChat()->setATConsoleMode(enabled);
 }
 
-void Controller::sendATCommand(const QString &command, QObject *receiver, const char *slot) {
+void Controller::sendATCommand(const QString &command, QObject *receiver, const char *slot) const {
     modem->getATChat()->chat(command, receiver, slot);
 }
 
@@ -84,36 +84,36 @@ void Controller::getSignalStrength() {
     modem->getATChat()->chat("AT+CSQ", this, SLOT(onSignalStrengthResponse(const ATCommand &)));
 }
 
-void Controller::restart() {
+void Controller::restart() const {
     modem->getATChat()->chat("AT+RST=1");
     QTimer::singleShot(17000, this, [this]() {
         modem->init();
     });
 }
 
-void Controller::turnOnMobileData() {
+void Controller::turnOnMobileData() const {
     modem->closeSerialPort();
     networkManager->turnOnMobileData();
 }
 
-void Controller::turnOffMobileData() {
+void Controller::turnOffMobileData() const {
     networkManager->turnOffMobileData();
 }
 
-void Controller::rejectCall() {
+void Controller::rejectCall() const {
     callManager->rejectCall();
 }
 
-void Controller::acceptCall() {
+void Controller::acceptCall() const {
     callManager->acceptCall();
 }
 
 void Controller::onSignalStrengthResponse(const ATCommand &command) {
     if (command.result == AT_OK) {
-        QRegExp re("^\\+CSQ: (\\d+),\\d+");
-        if (re.indexIn(command.response, 0) >= 0) {
-            qDebug() << "Signal strength: " << re.cap(1).toInt();
-            emit signalStrengthChanged(re.cap(1).toInt());
+        QRegularExpression re("^\\+CSQ: (\\d+),\\d+");
+        QRegularExpressionMatch match = re.match(command.response);
+        if (match.hasMatch()) {
+            emit signalStrengthChanged(match.captured(1).toInt());
         }
     }
 }

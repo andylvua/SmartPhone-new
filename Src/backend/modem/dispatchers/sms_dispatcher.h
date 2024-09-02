@@ -30,6 +30,7 @@ Q_OBJECT
     QTimer *SMSTimeoout;
     QHash<int, QUuid> waitingDeliveryReport;
     bool sending = false;
+    uint8_t messageReference = 0;
 
 public:
     explicit SMSDispatcher(Modem *modem);
@@ -48,7 +49,7 @@ private slots:
 
     void onCMGS(const QString &notification);
 
-    void onCDS(const QString &notification);
+    void onCDS(const QByteArray &notification);
 
     void onCMTI(const QString &notification);
 
@@ -56,15 +57,13 @@ private slots:
 
     void onReadListSMS(const ATCommand &command);
 
-    void onDeleteSMS(const ATCommand &command);
+    static void onDeleteSMS(const ATCommand &command);
 
 signals:
     void smsStatusChanged(const QUuid &uuid, delivery_status_t status);
-
     void smsReceived(const Message &message);
 
 private:
-
     void readIncomingSMS(int internalModemSmsId);
 
     void deleteMessage(int internalModemSmsId);

@@ -3,7 +3,7 @@
 //
 
 #include <QLabel>
-#include <QRegExpValidator>
+#include <QRegularExpressionValidator>
 
 #include "gui/phone_screen/contacts_screen/contact_dialog.h"
 #include "gui/utils/fa.h"
@@ -24,8 +24,8 @@ ContactDialog::ContactDialog(QWidget *parent, const Contact &contact, Mode mode)
     QLabel *numberLabel = new QLabel("Number:", this);
     numberEdit = new QLineEdit(contact.number, this);
 
-    QRegExp rx("^\\+380\\d{9}$");
-    QValidator *validator = new QRegExpValidator(rx, this);
+    QRegularExpression rx("^\\+380\\d{9}$");
+    QValidator *validator = new QRegularExpressionValidator(rx, this);
     numberEdit->setValidator(validator);
     mainLayout->addWidget(numberLabel);
     mainLayout->addWidget(numberEdit);

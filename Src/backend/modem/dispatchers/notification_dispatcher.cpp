@@ -9,6 +9,7 @@
 
 NotificationDispatcher::NotificationDispatcher(ATChat *atChat) {
     connect(atChat, &ATChat::notification, this, &NotificationDispatcher::handleNotification);
+    connect(atChat, &ATChat::pduNotification, this, &NotificationDispatcher::handlePduNotification);
     connect(atChat, &ATChat::callNotification, this, &NotificationDispatcher::handleCallNotification);
 }
 
@@ -26,10 +27,6 @@ void NotificationDispatcher::handleNotification(const QString &type, const QStri
         qDebug() << "Notification Manager: CMGS: " << notification;
         emit cmgs(notification);
     }
-    if (type == "+CDS:") {
-        qDebug() << "Notification Manager: CDS: " << notification;
-        emit cds(notification);
-    }
     if (type == "+CMTI:") {
         qDebug() << "Notification Manager: CMTI: " << notification;
         emit cmti(notification);
@@ -37,6 +34,13 @@ void NotificationDispatcher::handleNotification(const QString &type, const QStri
     if (type == "+CUSD:") {
         qDebug() << "Notification Manager: CUSD: " << notification;
         emit cusd(notification);
+    }
+}
+
+void NotificationDispatcher::handlePduNotification(const QString &type, const QByteArray &notification) {
+    if (type.startsWith("+CDS:")) {
+        qDebug() << "Notification Manager: CDS: " << notification;
+        emit cds(notification);
     }
 }
 

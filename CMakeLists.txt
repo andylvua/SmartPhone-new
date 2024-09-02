@@ -8,11 +8,12 @@ set(CMAKE_AUTOUIC ON)
 
 file(GLOB_RECURSE SOURCES Src/*.cpp Src/*.h)
 
-find_package(Qt5 COMPONENTS
+find_package(Qt6 COMPONENTS
         Core
         Widgets
         SerialPort
         WebEngineWidgets
+        StateMachine
         REQUIRED)
 
 QT_ADD_RESOURCES(RC_SRC "resources.qrc")
@@ -21,10 +22,11 @@ add_executable(phone main.cpp ${SOURCES} ${RC_SRC})
 target_include_directories(phone PRIVATE Src)
 
 target_link_libraries(phone
-        Qt5::Core
-        Qt5::Widgets
-        Qt5::SerialPort
-        Qt5::WebEngineWidgets
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::SerialPort
+        Qt6::WebEngineWidgets
+        Qt6::StateMachine
         )
 
 find_package(spdlog REQUIRED)
@@ -36,5 +38,8 @@ target_link_libraries(phone QtAwesome)
 add_definitions(-DQT_AWESOME_PRO)
 
 add_library(qtwaitingspinner Src/gui/utils/waitingspinnerwidget.h Src/gui/utils/waitingspinnerwidget.cpp)
-target_link_libraries(qtwaitingspinner Qt5::Core Qt5::Widgets)
+target_link_libraries(qtwaitingspinner Qt6::Core Qt6::Widgets)
 target_link_libraries(phone qtwaitingspinner)
+
+add_library(pdu Src/libs/pdulib/pdulib.h Src/libs/pdulib/pdulib.cpp)
+target_link_libraries(phone pdu)

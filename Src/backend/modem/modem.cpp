@@ -2,6 +2,8 @@
 // Created by andrew on 26.08.24.
 //
 
+#include <QRegularExpression>
+
 #include "backend/modem/modem.h"
 
 
@@ -33,17 +35,19 @@ void Modem::onInitResponse(const ATCommand &command) {
             modemInfo.number = command.response;
         } else if (command.command == "AT+COPS?") {
             QString operatorName;
-            QRegExp re("^\\+COPS:.*\"(.*)\"");
-            if (re.indexIn(command.response, 0) >= 0) {
-                operatorName = re.cap(1);
+            QRegularExpression re("^\\+COPS:.*\"(.*)\"");
+            QRegularExpressionMatch match = re.match(command.response);
+            if (match.hasMatch()) {
+                operatorName = match.captured(1);
             }
             qDebug() << "Operator: " << operatorName;
             modemInfo.operatorName = operatorName;
             emit operatorNameChanged(operatorName);
         } else if (command.command == "AT+CREG?") {
-            QRegExp re("^\\+CREG: *\\d+ *,\\s*(\\d+)\\s*$");
-            if (re.indexIn(command.response, 0) >= 0) {
-                int status = re.cap(1).toInt();
+            QRegularExpression re("^\\+CREG: *\\d+ *,\\s*(\\d+)\\s*$");
+            QRegularExpressionMatch match = re.match(command.response);
+            if (match.hasMatch()) {
+                int status = match.captured(1).toInt();
                 qDebug() << "Registration status: " << status;
                 modemInfo.registrationStatus = status == 1 || status == 5;
             }
@@ -64,10 +68,10 @@ void Modem::onInitResponse(const ATCommand &command) {
     }
 }
 
-void Modem::closeSerialPort() {
+void Modem::closeSerialPort() const {
     serialPort->close();
 }
 
-void Modem::openSerialPort() {
+void Modem::openSerialPort() const {
     serialPort->openSerialPort();
 }

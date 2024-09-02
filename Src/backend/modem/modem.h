@@ -29,7 +29,7 @@ private:
             "AT",
             "AT+CPIN?",
             "AT+CMEE=1",
-            "AT+CMGF=1",
+            "AT+CMGF=0",
             R"(AT+CPMS="ME","ME","ME")",
             R"(AT+CSCS="HEX")",
             "AT+CGMI",
@@ -66,8 +66,8 @@ public:
         return modemInfo;
     }
 
-    void closeSerialPort();
-    void openSerialPort();
+    void closeSerialPort() const;
+    void openSerialPort() const;
 
 signals:
     void initComplete();
@@ -77,7 +77,6 @@ signals:
 
 private slots:
     void onInitResponse(const ATCommand &command);
-
 };
 
 
