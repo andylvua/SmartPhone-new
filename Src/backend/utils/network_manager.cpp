@@ -46,7 +46,9 @@ void NetworkManager::turnOnMobileData() {
 }
 
 void NetworkManager::turnOffMobileData() const {
-    pppdProcess->terminate();
+    if (pppdProcess) {
+        pppdProcess->terminate();
+    }
 }
 
 void NetworkManager::onNewPPPConnection() {

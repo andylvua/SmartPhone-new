@@ -38,12 +38,12 @@ void SMSDispatcher::sendSMS(const QUuid &uuid, const QString &recipient, const Q
 }
 
 void SMSDispatcher::sendNextSMS() {
-    sending = true;
-    SMSTimeoout->start(15'000);
-
     if (smsQueue.isEmpty()) {
         return;
     }
+
+    sending = true;
+    SMSTimeoout->start(15'000);
 
     SMSPending *smsPending = smsQueue.head();
     qDebug() << "Sending SMS (MANAGER): " << smsPending->message;
@@ -71,11 +71,12 @@ void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
     SMSTimeoout->stop();
 
     if (command.result == AT_OK) {
-        waitingDeliveryReport[messageReference++] = smsQueue.head()->uuid;
-        emit smsStatusChanged(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
-        CacheManager::updateMessageStatus(smsQueue.head()->uuid, delivery_status_t::DS_SENT);
+        SMSPending *smsPending = smsQueue.dequeue();
+        waitingDeliveryReport[messageReference++] = smsPending->uuid;
+        emit smsStatusChanged(smsPending->uuid, delivery_status_t::DS_SENT);
+        CacheManager::updateMessageStatus(smsPending->uuid, delivery_status_t::DS_SENT);
         qDebug() << "SMS sent";
-        smsQueue.dequeue();
+        delete smsPending;
         sendNextSMS();
         return;
     }
@@ -91,6 +92,7 @@ void SMSDispatcher::onTransmitSMS(const ATCommand &command) {
     CacheManager::updateMessageStatus(smsPending->uuid, delivery_status_t::DS_FAILED);
     emit smsStatusChanged(smsPending->uuid, delivery_status_t::DS_FAILED);
     smsQueue.dequeue();
+    delete smsPending;
     sendNextSMS();
 }
 
